@@ -43,7 +43,15 @@ class GoogleMapController {
 
     ui.platformViewRegistry.registerViewFactory(
       _getViewType(mapId),
-      (int viewId) => _div,
+      (int viewId) => DivElement()
+        // Wrap the map div in a CSS reset for consistent styling.
+        // Having this on the map div itself seems to make it fail to render.
+        ..style.setProperty('all', 'initial')
+        // However, we do still need to set these to keep Flutter from logging a
+        // complaint.
+        ..style.width = '100%'
+        ..style.height = '100%'
+        ..children = <Element>[_div],
     );
   }
 
