@@ -4,6 +4,8 @@
 
 package io.flutter.plugins.googlemaps;
 
+import android.content.Context;
+
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
@@ -17,13 +19,15 @@ class PolylinesController {
   private final Map<String, PolylineController> polylineIdToController;
   private final Map<String, String> googleMapsPolylineIdToDartPolylineId;
   private final MethodChannel methodChannel;
+  private final Context context;
   private GoogleMap googleMap;
   private final float density;
 
-  PolylinesController(MethodChannel methodChannel, float density) {
+  PolylinesController(MethodChannel methodChannel, Context context, float density) {
     this.polylineIdToController = new HashMap<>();
     this.googleMapsPolylineIdToDartPolylineId = new HashMap<>();
     this.methodChannel = methodChannel;
+    this.context = context;
     this.density = density;
   }
 
@@ -82,7 +86,7 @@ class PolylinesController {
       return;
     }
     PolylineBuilder polylineBuilder = new PolylineBuilder(density);
-    String polylineId = Convert.interpretPolylineOptions(polyline, polylineBuilder);
+    String polylineId = Convert.interpretPolylineOptions(polyline, context, polylineBuilder);
     PolylineOptions options = polylineBuilder.build();
     addPolyline(polylineId, options, polylineBuilder.consumeTapEvents());
   }
@@ -102,7 +106,7 @@ class PolylinesController {
     String polylineId = getPolylineId(polyline);
     PolylineController polylineController = polylineIdToController.get(polylineId);
     if (polylineController != null) {
-      Convert.interpretPolylineOptions(polyline, polylineController);
+      Convert.interpretPolylineOptions(polyline, context, polylineController);
     }
   }
 

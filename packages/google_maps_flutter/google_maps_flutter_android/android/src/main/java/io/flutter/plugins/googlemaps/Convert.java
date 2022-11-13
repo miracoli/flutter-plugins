@@ -4,10 +4,13 @@
 
 package io.flutter.plugins.googlemaps;
 
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Point;
 import androidx.annotation.VisibleForTesting;
+import android.util.DisplayMetrics;
+
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.model.BitmapDescriptor;
@@ -26,6 +29,9 @@ import com.google.android.gms.maps.model.RoundCap;
 import com.google.android.gms.maps.model.SquareCap;
 import com.google.android.gms.maps.model.Tile;
 import io.flutter.view.FlutterMain;
+
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -38,7 +44,7 @@ class Convert {
   // TODO(hamdikahloun): FlutterMain has been deprecated and should be replaced with FlutterLoader
   //  when it's available in Stable channel: https://github.com/flutter/flutter/issues/70923.
   @SuppressWarnings("deprecation")
-  private static BitmapDescriptor toBitmapDescriptor(Object o) {
+  private static BitmapDescriptor toBitmapDescriptor(Object o, Context context) {
     final List<?> data = toList(o);
     switch (toString(data.get(0))) {
       case "defaultMarker":
@@ -57,8 +63,25 @@ class Convert {
         }
       case "fromAssetImage":
         if (data.size() == 3) {
-          return BitmapDescriptorFactory.fromAsset(
-              FlutterMain.getLookupKeyForAsset(toString(data.get(1))));
+          final double scale = toDouble(data.get(2));
+          if (scale == 1) {
+            return BitmapDescriptorFactory.fromAsset(
+                FlutterMain.getLookupKeyForAsset(toString(data.get(1))));
+          } else {
+            // Another option could be to modify the Android API side to support scaling in BitmapDescriptor.loadBitmap.
+            final String fileName = FlutterMain.getLookupKeyForAsset(toString(data.get(1)));
+            try (final InputStream asset = context.getAssets().open(fileName)) {
+              final BitmapFactory.Options options = new BitmapFactory.Options();
+              options.inScaled = true;
+              options.inDensity = DisplayMetrics.DENSITY_DEFAULT;
+              options.inTargetDensity = (int) (scale * DisplayMetrics.DENSITY_DEFAULT);
+              return BitmapDescriptorFactory.fromBitmap(BitmapFactory.decodeStream(asset, null, options));
+            } catch (IOException e) {
+              // This may just be punting the error down the line though. It may be better to return
+              // null (which is what loadBitmap does) to fail fast.
+              return BitmapDescriptorFactory.fromAsset(fileName);
+            }
+          }
         } else {
           throw new IllegalArgumentException(
               "'fromAssetImage' Expected exactly 3 arguments, got: " + data.size());
@@ -380,7 +403,7 @@ class Convert {
   }
 
   /** Returns the dartMarkerId of the interpreted marker. */
-  static String interpretMarkerOptions(Object o, MarkerOptionsSink sink) {
+  static String interpretMarkerOptions(Object o, Context context, MarkerOptionsSink sink) {
     final Map<?, ?> data = toMap(o);
     final Object alpha = data.get("alpha");
     if (alpha != null) {
@@ -405,7 +428,7 @@ class Convert {
     }
     final Object icon = data.get("icon");
     if (icon != null) {
-      sink.setIcon(toBitmapDescriptor(icon));
+      sink.setIcon(toBitmapDescriptor(icon, context));
     }
 
     final Object infoWindow = data.get("infoWindow");
@@ -497,7 +520,7 @@ class Convert {
     }
   }
 
-  static String interpretPolylineOptions(Object o, PolylineOptionsSink sink) {
+  static String interpretPolylineOptions(Object o, Context context, PolylineOptionsSink sink) {
     final Map<?, ?> data = toMap(o);
     final Object consumeTapEvents = data.get("consumeTapEvents");
     if (consumeTapEvents != null) {
@@ -509,7 +532,7 @@ class Convert {
     }
     final Object endCap = data.get("endCap");
     if (endCap != null) {
-      sink.setEndCap(toCap(endCap));
+      sink.setEndCap(toCap(endCap, context));
     }
     final Object geodesic = data.get("geodesic");
     if (geodesic != null) {
@@ -521,7 +544,7 @@ class Convert {
     }
     final Object startCap = data.get("startCap");
     if (startCap != null) {
-      sink.setStartCap(toCap(startCap));
+      sink.setStartCap(toCap(startCap, context));
     }
     final Object visible = data.get("visible");
     if (visible != null) {
@@ -644,7 +667,7 @@ class Convert {
     return pattern;
   }
 
-  private static Cap toCap(Object o) {
+  private static Cap toCap(Object o, Context context) {
     final List<?> data = toList(o);
     switch (toString(data.get(0))) {
       case "buttCap":
@@ -655,9 +678,9 @@ class Convert {
         return new SquareCap();
       case "customCap":
         if (data.size() == 2) {
-          return new CustomCap(toBitmapDescriptor(data.get(1)));
+          return new CustomCap(toBitmapDescriptor(data.get(1), context));
         } else {
-          return new CustomCap(toBitmapDescriptor(data.get(1)), toFloat(data.get(2)));
+          return new CustomCap(toBitmapDescriptor(data.get(1), context), toFloat(data.get(2)));
         }
       default:
         throw new IllegalArgumentException("Cannot interpret " + o + " as Cap");
