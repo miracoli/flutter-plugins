@@ -13,7 +13,7 @@ void main() {
   group('tile tests', () {
     test('toJson returns correct format', () async {
       final Uint8List data = Uint8List.fromList(<int>[0, 1]);
-      final Tile tile = Tile(100, 200, data);
+      final EncodedTile tile = EncodedTile(100, 200, data);
       final Object json = tile.toJson();
       expect(json, <String, Object>{
         'width': 100,
@@ -23,7 +23,7 @@ void main() {
     });
 
     test('toJson handles null data', () async {
-      const Tile tile = Tile(0, 0, null);
+      const EncodedTile tile = EncodedTile(0, 0, null);
       final Object json = tile.toJson();
       expect(json, <String, Object>{
         'width': 0,

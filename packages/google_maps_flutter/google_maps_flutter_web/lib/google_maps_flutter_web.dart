@@ -11,9 +11,9 @@ import 'dart:js_util';
 
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Element;
 import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/widgets.dart' hide Element;
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 import 'package:google_maps/google_maps.dart' as gmaps;
 import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
@@ -37,3 +37,4 @@ part 'src/polygon.dart';
 part 'src/polygons.dart';
 part 'src/polyline.dart';
 part 'src/polylines.dart';
+part 'src/web_image.dart';
