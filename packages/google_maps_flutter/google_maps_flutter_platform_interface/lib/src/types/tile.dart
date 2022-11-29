@@ -3,13 +3,26 @@
 // found in the LICENSE file.
 
 import 'dart:typed_data';
+import 'dart:ui';
 import 'package:flutter/foundation.dart' show immutable;
+import 'package:image/image.dart' as img;
 
 /// Contains information about a Tile that is returned by a [TileProvider].
 @immutable
-class Tile {
+abstract class Tile {
+  factory Tile(int width, int height, Uint8List? data) =>
+      EncodedTile(width, height, data);
+
+  int get width;
+  int get height;
+
+  Future<EncodedTile> asEncodedTile();
+}
+
+@immutable
+class EncodedTile implements Tile {
   /// Creates an immutable representation of a [Tile] to draw by [TileProvider].
-  const Tile(this.width, this.height, this.data);
+  const EncodedTile(this.width, this.height, this.data);
 
   /// The width of the image encoded by data in logical pixels.
   final int width;
@@ -38,5 +51,33 @@ class Tile {
     addIfPresent('data', data);
 
     return json;
+  }
+
+  @override
+  asEncodedTile() async => this;
+}
+
+class ImageTile implements Tile {
+  static final _encoder = img.BmpEncoder();
+
+  ImageTile(this.image);
+  final Image image;
+
+  @override
+  get width => image.width;
+  @override
+  get height => image.height;
+
+  @override
+  Future<EncodedTile> asEncodedTile() async {
+    final data =
+        await image.toByteData(format: ImageByteFormat.rawStraightRgba);
+    final imgImage =
+        img.Image.fromBytes(width, height, data!.buffer.asUint8List());
+    final encoded = EncodedTile(
+        width, height, Uint8List.fromList(_encoder.encodeImage(imgImage)));
+    // TODO: This is obviously nonobvious and we should make things clearer to move this out of prototype.
+    image.dispose();
+    return encoded;
   }
 }

@@ -261,7 +261,7 @@ class MethodChannelGoogleMapsFlutter extends GoogleMapsFlutterPlatform {
           call.arguments['y'] as int,
           call.arguments['zoom'] as int?,
         );
-        return tile.toJson();
+        return (await tile.asEncodedTile()).toJson();
       default:
         throw MissingPluginException();
     }
