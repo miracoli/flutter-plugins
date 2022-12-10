@@ -2,11 +2,43 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import 'dart:collection';
+
+import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart'
     show immutable, objectRuntimeType, setEquals;
 
 import 'maps_object.dart';
 import 'utils/maps_object.dart';
+
+class SetView<T> extends SetBase<T> {
+  static Never _throwUnmodifiable() =>
+      throw UnsupportedError("Cannot change an unmodifiable set");
+  SetView(this.source);
+  final Iterable<T> source;
+
+  @override
+  bool add(T value) => _throwUnmodifiable();
+
+  @override
+  bool contains(Object? element) => source.contains(element);
+
+  @override
+  Iterator<T> get iterator => source.iterator;
+
+  @override
+  int get length => source.length;
+
+  @override
+  T? lookup(Object? element) =>
+      source.singleWhereOrNull((existing) => existing == element);
+
+  @override
+  bool remove(Object? value) => _throwUnmodifiable();
+
+  @override
+  Set<T> toSet() => source.toSet();
+}
 
 /// Update specification for a set of objects.
 @immutable
@@ -37,10 +69,8 @@ class MapsObjectUpdates<T extends MapsObject<T>> {
 
     _objectIdsToRemove = previousObjectIds.difference(currentObjectIds);
 
-    _objectsToAdd = currentObjectIds
-        .difference(previousObjectIds)
-        .map(idToCurrentObject)
-        .toSet();
+    _objectsToAdd = SetView(
+        currentObjectIds.difference(previousObjectIds).map(idToCurrentObject));
 
     // Returns `true` if [current] is not equals to previous one with the
     // same id.
@@ -49,11 +79,10 @@ class MapsObjectUpdates<T extends MapsObject<T>> {
       return current != previous;
     }
 
-    _objectsToChange = currentObjectIds
+    _objectsToChange = SetView(currentObjectIds
         .intersection(previousObjectIds)
         .map(idToCurrentObject)
-        .where(hasChanged)
-        .toSet();
+        .where(hasChanged));
   }
 
   /// The name of the objects being updated, for use in serialization.
