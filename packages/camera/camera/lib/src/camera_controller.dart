@@ -9,6 +9,7 @@ import 'package:camera_platform_interface/camera_platform_interface.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:quiver/core.dart';
 
 import '../camera.dart';
 
@@ -160,10 +161,10 @@ class CameraValue {
     bool? exposurePointSupported,
     bool? focusPointSupported,
     DeviceOrientation? deviceOrientation,
-    DeviceOrientation? lockedCaptureOrientation,
-    DeviceOrientation? recordingOrientation,
+    Optional<DeviceOrientation>? lockedCaptureOrientation,
+    Optional<DeviceOrientation>? recordingOrientation,
     bool? isPreviewPaused,
-    DeviceOrientation? previewPauseOrientation,
+    Optional<DeviceOrientation>? previewPauseOrientation,
   }) {
     return CameraValue(
       isInitialized: isInitialized ?? this.isInitialized,
@@ -180,12 +181,16 @@ class CameraValue {
           exposurePointSupported ?? this.exposurePointSupported,
       focusPointSupported: focusPointSupported ?? this.focusPointSupported,
       deviceOrientation: deviceOrientation ?? this.deviceOrientation,
-      lockedCaptureOrientation:
-          lockedCaptureOrientation ?? this.lockedCaptureOrientation,
-      recordingOrientation: recordingOrientation ?? this.recordingOrientation,
+      lockedCaptureOrientation: lockedCaptureOrientation == null
+          ? this.lockedCaptureOrientation
+          : lockedCaptureOrientation.orNull,
+      recordingOrientation: recordingOrientation == null
+          ? this.recordingOrientation
+          : recordingOrientation.orNull,
       isPreviewPaused: isPreviewPaused ?? this.isPreviewPaused,
-      previewPauseOrientation:
-          previewPauseOrientation ?? this.previewPauseOrientation,
+      previewPauseOrientation: previewPauseOrientation == null
+          ? this.previewPauseOrientation
+          : previewPauseOrientation.orNull,
     );
   }
 
@@ -353,8 +358,8 @@ class CameraController extends ValueNotifier<CameraValue> {
       await CameraPlatform.instance.pausePreview(_cameraId);
       value = value.copyWith(
           isPreviewPaused: true,
-          previewPauseOrientation:
-              value.lockedCaptureOrientation ?? value.deviceOrientation);
+          previewPauseOrientation: Optional<DeviceOrientation>.of(
+              value.lockedCaptureOrientation ?? value.deviceOrientation));
     } on PlatformException catch (e) {
       throw CameraException(e.code, e.message);
     }
@@ -367,7 +372,9 @@ class CameraController extends ValueNotifier<CameraValue> {
     }
     try {
       await CameraPlatform.instance.resumePreview(_cameraId);
-      value = value.copyWith(isPreviewPaused: false);
+      value = value.copyWith(
+          isPreviewPaused: false,
+          previewPauseOrientation: const Optional<DeviceOrientation>.absent());
     } on PlatformException catch (e) {
       throw CameraException(e.code, e.message);
     }
@@ -498,8 +505,8 @@ class CameraController extends ValueNotifier<CameraValue> {
       value = value.copyWith(
           isRecordingVideo: true,
           isRecordingPaused: false,
-          recordingOrientation:
-              value.lockedCaptureOrientation ?? value.deviceOrientation);
+          recordingOrientation: Optional<DeviceOrientation>.of(
+              value.lockedCaptureOrientation ?? value.deviceOrientation));
     } on PlatformException catch (e) {
       throw CameraException(e.code, e.message);
     }
@@ -519,7 +526,10 @@ class CameraController extends ValueNotifier<CameraValue> {
     try {
       final XFile file =
           await CameraPlatform.instance.stopVideoRecording(_cameraId);
-      value = value.copyWith(isRecordingVideo: false);
+      value = value.copyWith(
+        isRecordingVideo: false,
+        recordingOrientation: const Optional<DeviceOrientation>.absent(),
+      );
       return file;
     } on PlatformException catch (e) {
       throw CameraException(e.code, e.message);
@@ -737,7 +747,8 @@ class CameraController extends ValueNotifier<CameraValue> {
       await CameraPlatform.instance.lockCaptureOrientation(
           _cameraId, orientation ?? value.deviceOrientation);
       value = value.copyWith(
-          lockedCaptureOrientation: orientation ?? value.deviceOrientation);
+          lockedCaptureOrientation: Optional<DeviceOrientation>.of(
+              orientation ?? value.deviceOrientation));
     } on PlatformException catch (e) {
       throw CameraException(e.code, e.message);
     }
@@ -757,7 +768,8 @@ class CameraController extends ValueNotifier<CameraValue> {
   Future<void> unlockCaptureOrientation() async {
     try {
       await CameraPlatform.instance.unlockCaptureOrientation(_cameraId);
-      value = value.copyWith();
+      value = value.copyWith(
+          lockedCaptureOrientation: const Optional<DeviceOrientation>.absent());
     } on PlatformException catch (e) {
       throw CameraException(e.code, e.message);
     }
