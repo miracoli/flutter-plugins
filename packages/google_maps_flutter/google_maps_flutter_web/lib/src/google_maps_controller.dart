@@ -340,10 +340,17 @@ class GoogleMapController {
   }
 
   /// Applies a `cameraUpdate` to the current viewport.
+  Future<void> animateCamera(CameraUpdate cameraUpdate) async {
+    assert(_googleMap != null, 'Cannot update the camera of a null map.');
+
+    return _applyCameraUpdate(_googleMap!, cameraUpdate, animate: true);
+  }
+
+  /// Applies a `cameraUpdate` to the current viewport.
   Future<void> moveCamera(CameraUpdate cameraUpdate) async {
     assert(_googleMap != null, 'Cannot update the camera of a null map.');
 
-    return _applyCameraUpdate(_googleMap!, cameraUpdate);
+    return _applyCameraUpdate(_googleMap!, cameraUpdate, animate: false);
   }
 
   /// Returns the zoom level of the current viewport.
